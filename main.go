@@ -1,78 +1,43 @@
 package main
 
 import (
+	"feature-branch-bot/gitlab_tools"
 	"fmt"
-	git "github.com/libgit2/git2go/v31"
+	"github.com/xanzy/go-gitlab"
 )
 
 const sshPublicKey = `FILL ME`
 const sshPrivateKey = `FILL ME`
 const repoSSHURL = `FILL ME`
+const projectPathWithNamespace = `FILL ME`
+const serverBaseURL = `FILL ME`
+const gitlabAPIToken = `FILL ME`
+const keepUpToDateTag = `FILL ME`
 
 func main() {
 	fmt.Println("Hello world! Cloning portal.")
 
-	var alreadyNewlined bool
-	cloneOpts := git.CloneOptions{
-		CheckoutOpts: &git.CheckoutOpts{
-			Strategy: git.CheckoutSafe,
-			ProgressCallback: func(_ string, completed, total uint) git.ErrorCode {
-				fmt.Printf("\rChecking out repository: %v/%v complete", completed, total)
+	// repo, err := gitrepo.CloneRepository(repoSSHURL, "./cloned-repo/", gitrepo.SSHCredentials{
+	// 	SSHPubKey:  sshPublicKey,
+	// 	SSHPrivKey: sshPrivateKey,
+	// }, true)
+	// if err != nil {
+	// 	fmt.Println("Repo clone failed:", err)
+	// 	return
+	// }
+	// defer repo.Free()
 
-				return git.ErrorCodeOK
-			},
-		},
-		FetchOptions: &git.FetchOptions{
-			RemoteCallbacks: git.RemoteCallbacks{
-				TransferProgressCallback: func(progress git.TransferProgress) git.ErrorCode {
-					if !alreadyNewlined {
-						fmt.Printf("\rDownloading repository: %v/%v complete", progress.ReceivedObjects, progress.TotalObjects)
-						if progress.ReceivedObjects == progress.TotalObjects {
-							fmt.Println()
-							alreadyNewlined = true
-						}
-					}
-					return git.ErrorCodeOK
-				},
-				CredentialsCallback: func(string, string, git.CredentialType) (*git.Credential, error) {
-					return git.NewCredentialSSHKeyFromMemory("git", sshPublicKey, sshPrivateKey, "")
-				},
-				CertificateCheckCallback: func(*git.Certificate, bool, string) git.ErrorCode {
-					return git.ErrorCodeOK
-				},
-			},
-		},
-		CheckoutBranch: "master",
-	}
-	repo, err := git.Clone(repoSSHURL, "./cloned-repo/", &cloneOpts)
-	if err != nil {
-		fmt.Printf("Failed to clone.", err)
+	glClient, clientCreateErr := gitlab.NewClient(gitlabAPIToken, gitlab.WithBaseURL(serverBaseURL))
+	if clientCreateErr != nil {
+		fmt.Println("Failed to connect to GitLab:", clientCreateErr)
 		return
 	}
-	defer repo.Free()
 
-	// Need to newline because the
-	fmt.Println()
-
-	branchIterator, iterCreateErr := repo.NewBranchIterator(git.BranchAll)
-	if iterCreateErr != nil {
-		fmt.Println("Failed to create branch iterator. ", iterCreateErr)
+	mergeRequests, fetchErr := gitlab_tools.FetchMergeRequestsWithTag(glClient, projectPathWithNamespace, keepUpToDateTag)
+	if fetchErr != nil {
+		fmt.Printf("Failed to get merge requests with the tag: %v. Error: %v\n", keepUpToDateTag, fetchErr)
 		return
 	}
-	defer branchIterator.Free()
 
-	iterationErr := branchIterator.ForEach(func(branch *git.Branch, branchType git.BranchType) error {
-		branchName, nameReadErr := branch.Name()
-		if nameReadErr != nil {
-			fmt.Println("Couldn't read branch name.")
-			return nil
-		}
-
-		fmt.Println("Found branch: ", branchName)
-		return nil
-	})
-	if iterationErr != nil {
-		fmt.Println("Branch iteration failed.", iterationErr)
-		return
-	}
+	fmt.Println(len(mergeRequests))
 }
