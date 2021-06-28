@@ -63,7 +63,7 @@ func CloneRepository(url, destinationDir string, credentials SSHCredentials, int
 // SwitchToBranch looks up a branch and switches to it, returning the commit the branch points
 // to for easy git reset or branch operations if necessary
 func SwitchToBranch(repo *git.Repository, branch string) (*git.Commit, error) {
-	foundBranch, lookupErr := repo.LookupBranch(branch, git.BranchAll)
+	foundBranch, lookupErr := repo.LookupBranch("origin/"+branch, git.BranchRemote)
 	if lookupErr != nil {
 		return nil, fmt.Errorf("failed to find branch %v: %w", branch, lookupErr)
 	}
@@ -82,6 +82,17 @@ func SwitchToBranch(repo *git.Repository, branch string) (*git.Commit, error) {
 	}
 	defer commitTree.Free()
 
+	localBranch, branchCreateErr := repo.CreateBranch(branch, branchCommit, false)
+	if branchCreateErr != nil {
+		branchCommit.Free()
+		return nil, fmt.Errorf("failed to create local branch for checkout: %w", branchCreateErr)
+	}
+	upstreamSetErr := localBranch.SetUpstream("origin/" + branch)
+	if upstreamSetErr != nil {
+		branchCommit.Free()
+		return nil, fmt.Errorf("failed to set local branch's upstream: %w", branchCreateErr)
+	}
+
 	checkoutErr := repo.CheckoutTree(commitTree, stdCheckoutOptions)
 	if checkoutErr != nil {
 		branchCommit.Free()
@@ -96,9 +107,9 @@ func SwitchToBranch(repo *git.Repository, branch string) (*git.Commit, error) {
 	return branchCommit, nil
 }
 
-// MergeBranchToCurrent merges the specified branch to the current HEAD
-func MergeBranchToCurrent(repo *git.Repository, branchToMerge string) error {
-	branchResult, branchLookupErr := repo.LookupBranch(branchToMerge, git.BranchAll)
+// MergeBranches merges the specified branch to the current commit
+func MergeBranches(repo *git.Repository, branchToMerge string) error {
+	branchResult, branchLookupErr := repo.LookupBranch("origin/"+branchToMerge, git.BranchRemote)
 	if branchLookupErr != nil {
 		return fmt.Errorf("failed to find branch to merge into current: %v: %w", branchToMerge, branchLookupErr)
 	}
@@ -107,19 +118,21 @@ func MergeBranchToCurrent(repo *git.Repository, branchToMerge string) error {
 	}
 	defer branchResult.Free()
 
-	annotatedBranchToMergeCommit, commitLookupErr := repo.LookupAnnotatedCommit(branchResult.Target())
+	branchToMergeCommit, commitLookupErr := repo.LookupAnnotatedCommit(branchResult.Target())
 	if commitLookupErr != nil {
 		return fmt.Errorf("could not find commit referenced by branch to merge: %v: %w", branchToMerge, commitLookupErr)
 	}
-	defer annotatedBranchToMergeCommit.Free()
+	defer branchToMergeCommit.Free()
 
 	mergeOpts := &git.MergeOptions{
 		TreeFlags: git.MergeTreeFailOnConflict | git.MergeTreeFindRenames,
 	}
-	mergeErr := repo.Merge([]*git.AnnotatedCommit{annotatedBranchToMergeCommit}, mergeOpts, stdCheckoutOptions)
+	mergeErr := repo.Merge([]*git.AnnotatedCommit{branchToMergeCommit}, mergeOpts, stdCheckoutOptions)
 	if mergeErr != nil {
 		return fmt.Errorf("merge of branch %v failed: %w", branchToMerge, mergeErr)
 	}
+
+	// TODO create the merge commit
 
 	return nil
 }

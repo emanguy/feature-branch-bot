@@ -6,6 +6,7 @@ import (
 	"fmt"
 	git "github.com/libgit2/git2go/v31"
 	"github.com/xanzy/go-gitlab"
+	"go.uber.org/multierr"
 	"os"
 	"strings"
 )
@@ -49,5 +50,43 @@ func SyncRepository(glClient *gitlab.Client, projectPathWithNamespace, triggerTa
 }
 
 func SyncMR(glClient *gitlab.Client, mergeRequest gitlab.MergeRequest, repo *git.Repository) error {
-	panic("implement me")
+	currentBranch := mergeRequest.SourceBranch
+	targetBranch := mergeRequest.TargetBranch
+
+	branchCommit, branchSwitchErr := gitrepo.SwitchToBranch(repo, currentBranch)
+	if branchSwitchErr != nil {
+		return branchSwitchErr
+	}
+	defer branchCommit.Free()
+
+	fmt.Printf("Now merging branch %v into %v for MR !%v...\n", targetBranch, currentBranch, mergeRequest.IID)
+	mergeErr := gitrepo.MergeBranches(repo, targetBranch)
+	if mergeErr != nil {
+		fmt.Printf("Merge failed, possible conflict. Notifying authors for MR !%v and hard resetting...\n", mergeRequest.IID)
+		// comment := ":warning: Error: automatic merge failed due to merge conflict. Please merge manually."
+		// _, _, commentErr := glClient.Notes.CreateMergeRequestNote(mergeRequest.ProjectID, mergeRequest.IID, &gitlab.CreateMergeRequestNoteOptions{
+		// 	Body: &comment,
+		// })
+		// // If we fail to make the comment, just combine the comment error with the merge error
+		// if commentErr != nil {
+		// 	combinedErr := multierr.Combine(commentErr, mergeErr)
+		// 	mergeErr = fmt.Errorf("merge failed, failed to notify users of conflict: %w", combinedErr)
+		// }
+
+		// Now hard reset
+		resetErr := gitrepo.ResetRepo(repo, branchCommit)
+		if resetErr != nil {
+			mergeErr = multierr.Append(mergeErr, resetErr)
+		}
+
+		return mergeErr
+	}
+
+	fmt.Printf("Pushing updated branch for MR !%v...\n")
+	// pushErr := gitrepo.PushChanges(repo, currentBranch)
+	// if pushErr != nil {
+	// 	return pushErr
+	// }
+
+	return nil
 }
