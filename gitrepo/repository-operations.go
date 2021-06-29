@@ -131,6 +131,8 @@ func MergeBranches(repo *git.Repository, branchToMerge string) error {
 	}
 	defer branchToMergeAnnotatedCommit.Free()
 
+	// TODO lookup annotated commit for current branch, then do merge analysis to see if a merge needs to be performed
+
 	mergeOpts := &git.MergeOptions{
 		TreeFlags: git.MergeTreeFailOnConflict | git.MergeTreeFindRenames,
 	}
