@@ -28,7 +28,7 @@ func main() {
 		return
 	}
 
-	repoSyncErr := SyncRepository(glClient, projectPathWithNamespace, keepUpToDateTag, repoSSHURL, sshCredentials)
+	repoSyncErr := SyncRepository(glClient, projectPathWithNamespace, keepUpToDateTag, repoSSHURL, sshCredentials, false)
 	if repoSyncErr != nil {
 		fmt.Println("Failed to sync the requested repository: ", repoSyncErr)
 	} else {

@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func SyncRepository(glClient *gitlab.Client, projectPathWithNamespace, triggerTag, cloneURL string, gitCreds gitrepo.SSHCredentials) error {
+func SyncRepository(glClient *gitlab.Client, projectPathWithNamespace, triggerTag, cloneURL string, gitCreds gitrepo.SSHCredentials, liveProgress bool) error {
 	fmt.Printf("Syncing repository %v...\n", projectPathWithNamespace)
 	mrsToSync, mrFetchErr := gitlab_tools.FetchMergeRequestsWithTag(glClient, projectPathWithNamespace, triggerTag)
 	if mrFetchErr != nil {
@@ -25,7 +25,7 @@ func SyncRepository(glClient *gitlab.Client, projectPathWithNamespace, triggerTa
 	fmt.Printf("%v: %v merge requests to sync. Cloning repo.\n", projectPathWithNamespace, len(mrsToSync))
 
 	outputDir := strings.Replace(projectPathWithNamespace, "/", "_", -1)
-	clonedRepo, repoCloneErr := gitrepo.CloneRepository(cloneURL, outputDir, gitCreds, false)
+	clonedRepo, repoCloneErr := gitrepo.CloneRepository(cloneURL, outputDir, gitCreds, liveProgress)
 	if repoCloneErr != nil {
 		return repoCloneErr
 	}
@@ -33,7 +33,7 @@ func SyncRepository(glClient *gitlab.Client, projectPathWithNamespace, triggerTa
 
 	for _, mergeRequestToSync := range mrsToSync {
 		fmt.Printf("Syncing merge request !%v with base branch...\n", mergeRequestToSync.IID)
-		mergeErr := SyncMR(glClient, *mergeRequestToSync, clonedRepo)
+		mergeErr := SyncMR(glClient, *mergeRequestToSync, clonedRepo, gitCreds, liveProgress)
 		if mergeErr != nil {
 			fmt.Printf("Sync failure for MR !%v: %v\n", mergeRequestToSync.IID, mergeErr)
 		}
@@ -49,7 +49,7 @@ func SyncRepository(glClient *gitlab.Client, projectPathWithNamespace, triggerTa
 	return nil
 }
 
-func SyncMR(glClient *gitlab.Client, mergeRequest gitlab.MergeRequest, repo *git.Repository) error {
+func SyncMR(glClient *gitlab.Client, mergeRequest gitlab.MergeRequest, repo *git.Repository, gitCreds gitrepo.SSHCredentials, liveProgress bool) error {
 	currentBranch := mergeRequest.SourceBranch
 	targetBranch := mergeRequest.TargetBranch
 
@@ -63,15 +63,15 @@ func SyncMR(glClient *gitlab.Client, mergeRequest gitlab.MergeRequest, repo *git
 	mergeErr := gitrepo.MergeBranches(repo, targetBranch)
 	if mergeErr != nil {
 		fmt.Printf("Merge failed, possible conflict. Notifying authors for MR !%v and hard resetting...\n", mergeRequest.IID)
-		// comment := ":warning: Error: automatic merge failed due to merge conflict. Please merge manually."
-		// _, _, commentErr := glClient.Notes.CreateMergeRequestNote(mergeRequest.ProjectID, mergeRequest.IID, &gitlab.CreateMergeRequestNoteOptions{
-		// 	Body: &comment,
-		// })
-		// // If we fail to make the comment, just combine the comment error with the merge error
-		// if commentErr != nil {
-		// 	combinedErr := multierr.Combine(commentErr, mergeErr)
-		// 	mergeErr = fmt.Errorf("merge failed, failed to notify users of conflict: %w", combinedErr)
-		// }
+		comment := ":warning:  Error: automatic merge failed due to merge conflict. Please merge manually."
+		_, _, commentErr := glClient.Notes.CreateMergeRequestNote(mergeRequest.ProjectID, mergeRequest.IID, &gitlab.CreateMergeRequestNoteOptions{
+			Body: &comment,
+		})
+		// If we fail to make the comment, just combine the comment error with the merge error
+		if commentErr != nil {
+			combinedErr := multierr.Combine(commentErr, mergeErr)
+			mergeErr = fmt.Errorf("merge failed, failed to notify users of conflict: %w", combinedErr)
+		}
 
 		// Now hard reset
 		resetErr := gitrepo.ResetRepo(repo, branchCommit)
@@ -83,10 +83,10 @@ func SyncMR(glClient *gitlab.Client, mergeRequest gitlab.MergeRequest, repo *git
 	}
 
 	fmt.Printf("Pushing updated branch for MR !%v...\n")
-	// pushErr := gitrepo.PushChanges(repo, currentBranch)
-	// if pushErr != nil {
-	// 	return pushErr
-	// }
+	pushErr := gitrepo.PushChanges(repo, currentBranch, gitCreds, liveProgress)
+	if pushErr != nil {
+		return pushErr
+	}
 
 	return nil
 }
