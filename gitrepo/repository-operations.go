@@ -131,7 +131,27 @@ func MergeBranches(repo *git.Repository, branchToMerge string) error {
 	}
 	defer branchToMergeAnnotatedCommit.Free()
 
-	// TODO lookup annotated commit for current branch, then do merge analysis to see if a merge needs to be performed
+	workingBranchHead, headFetchErr := repo.Head()
+	if headFetchErr != nil {
+		return fmt.Errorf("failed to retrieve current branch HEAD for merge: %w", headFetchErr)
+	}
+
+	workingBranchAnnotatedCommit, wbacFetchErr := repo.LookupAnnotatedCommit(workingBranchHead.Target())
+	if wbacFetchErr != nil {
+		return fmt.Errorf("failed to get commit that HEAD is pointing at during merge: %w", wbacFetchErr)
+	}
+	defer workingBranchAnnotatedCommit.Free()
+
+	analysisResult, _, mergeAnalysisErr := repo.MergeAnalysis([]*git.AnnotatedCommit{workingBranchAnnotatedCommit, branchToMergeAnnotatedCommit})
+	if mergeAnalysisErr != nil {
+		return fmt.Errorf("failed to perform merge analysis against branch %v, could not determine if merge is necessary: %w", branchToMerge, mergeAnalysisErr)
+	}
+
+	// If the branch is already up-to-date, ignore it
+	if analysisResult&git.MergeAnalysisUpToDate == 0 {
+		fmt.Printf("This branch is already up to date with %v.\n", branchToMerge)
+		return nil
+	}
 
 	mergeOpts := &git.MergeOptions{
 		TreeFlags: git.MergeTreeFailOnConflict | git.MergeTreeFindRenames,
