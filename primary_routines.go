@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// SyncRepository locates merge requests in need of synchronization and attempts to synchronize all of them.
 func SyncRepository(glClient *gitlab.Client, projectPathWithNamespace, triggerTag, cloneURL, mainBranchName string, gitCreds gitrepo.SSHCredentials, liveProgress bool) error {
 	fmt.Printf("Syncing repository %v...\n", projectPathWithNamespace)
 	mrsToSync, mrFetchErr := gitlab_tools.FetchMergeRequestsWithTag(glClient, projectPathWithNamespace, triggerTag)
@@ -49,6 +50,7 @@ func SyncRepository(glClient *gitlab.Client, projectPathWithNamespace, triggerTa
 	return nil
 }
 
+// SyncMR synchronizes one located merge request.
 func SyncMR(glClient *gitlab.Client, mergeRequest gitlab.MergeRequest, repo *git.Repository, gitCreds gitrepo.SSHCredentials, liveProgress bool) error {
 	currentBranch := mergeRequest.SourceBranch
 	targetBranch := mergeRequest.TargetBranch
@@ -83,7 +85,7 @@ func SyncMR(glClient *gitlab.Client, mergeRequest gitlab.MergeRequest, repo *git
 	}
 
 	if mergeOccurred {
-		fmt.Printf("Pushing updated branch for MR !%v...\n")
+		fmt.Printf("Pushing updated branch for MR !%v...\n", mergeRequest.IID)
 		pushErr := gitrepo.PushChanges(repo, currentBranch, gitCreds, liveProgress)
 		if pushErr != nil {
 			return pushErr

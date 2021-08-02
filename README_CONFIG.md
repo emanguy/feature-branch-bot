@@ -15,7 +15,7 @@ you can provide an alternate path for the configuration as the first argument of
 * `baseURL` [String] - The base URL of the VCS server. Used to determine where to point the API so private servers are supported.
 * `apiToken` [Credential Source] - The API token to use for accessing the VCS server's API.
   * For GitLab servers, this token should only require the `api` scope. The user this token was generated for should have access to read merge requests
-    on the targeted GitLab server for the projects listed under `projectsToSync`.
+    and push commits on the targeted GitLab server for the projects listed under `projectsToSync`.
 * `syncTag` [String, optional] - The default tag to look for on merge requests for the bot to know which ones to sync. 
   This will be used for projects which do not specify a tag. Not necessary if it is specified on all projects.
 * `sshCreds` [SSH Credentials, optional] - The default SSH credentials to use if not specified on a project. 
