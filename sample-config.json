@@ -4,7 +4,10 @@
     {
       "type": "GITLAB",
       "baseURL": "https://www.gitlab.com",
-      "apiToken": "abcdefg",
+      "apiToken": {
+        "type": "INLINE",
+        "value": "api-token-here"
+      },
       "syncTag": "optional-server-wide-sync-tag",
 
       "sshCreds": {
@@ -22,12 +25,12 @@
 
         {
           "pathWithNamespace": "emanguy/project1",
-          "sshCloneURL": "ssh://git@gitlab.com:emanguy/project1"
+          "sshCloneURL": "git@gitlab.com:emanguy/project1"
         },
 
         {
           "pathWithNamespace": "emanguy/project2",
-          "sshCloneURL": "ssh://git@gitlab.com:emanguy/project2",
+          "sshCloneURL": "git@gitlab.com:emanguy/project2",
           "syncTag": "sync-tag-specific-to-project",
           "sshCreds": {
             "publicKey": {

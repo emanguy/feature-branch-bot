@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,39 +12,72 @@ type CredentialSource interface {
 }
 
 type CredentialSourceIdentifier struct {
-	Type string
+	Type string `json:"type"`
 }
 
 type FileCredentialSource struct {
-	location string
+	Location string `json:"location"`
 }
 
 func (fcs FileCredentialSource) RetrieveCredential() (string, error) {
-	fileContent, fileReadErr := ioutil.ReadFile(fcs.location)
+	fileContent, fileReadErr := ioutil.ReadFile(fcs.Location)
 	if fileReadErr != nil {
-		return "", fmt.Errorf("failed to read ssh credential at %v: %w", fcs.location, fileReadErr)
+		return "", fmt.Errorf("failed to read ssh credential at %v: %w", fcs.Location, fileReadErr)
 	}
 
 	return string(fileContent), nil
 }
 
 type EnvironmentCredentialSource struct {
-	variableName string
+	VariableName string `json:"variableName"`
 }
 
 func (ecs EnvironmentCredentialSource) RetrieveCredential() (string, error) {
-	envVarContent, envVarExists := os.LookupEnv(ecs.variableName)
+	envVarContent, envVarExists := os.LookupEnv(ecs.VariableName)
 	if !envVarExists {
-		return "", fmt.Errorf("failed to read ssh credential from %v, the variable did not exist", ecs.variableName)
+		return "", fmt.Errorf("failed to read ssh credential from %v, the variable did not exist", ecs.VariableName)
 	}
 
 	return envVarContent, nil
 }
 
 type InlineCredentialSource struct {
-	value string
+	Value string `json:"value"`
 }
 
 func (ics InlineCredentialSource) RetrieveCredential() (string, error) {
-	return ics.value, nil
+	return ics.Value, nil
+}
+
+func unmarshalCredentialSource(data []byte, sourceTarget *CredentialSource) error {
+	var credentialType CredentialSourceIdentifier
+	if err := json.Unmarshal(data, &credentialType); err != nil {
+		return err
+	}
+
+	switch credentialType.Type {
+	case "FILE":
+		var credentialSource FileCredentialSource
+		if err := json.Unmarshal(data, &credentialSource); err != nil {
+			return err
+		}
+		*sourceTarget = credentialSource
+		return nil
+	case "ENVIRONMENT":
+		var credentialSource EnvironmentCredentialSource
+		if err := json.Unmarshal(data, &credentialSource); err != nil {
+			return err
+		}
+		*sourceTarget = credentialSource
+		return nil
+	case "INLINE":
+		var credentialSource InlineCredentialSource
+		if err := json.Unmarshal(data, &credentialSource); err != nil {
+			return err
+		}
+		*sourceTarget = credentialSource
+		return nil
+	}
+
+	return fmt.Errorf("%v is not a valid credential source type", credentialType.Type)
 }

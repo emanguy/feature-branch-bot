@@ -6,62 +6,53 @@ import (
 )
 
 type BotConfig struct {
-	InteractiveProgress bool
-	Servers             []VCSServer
+	InteractiveProgress bool        `json:"interactiveProgress"`
+	Servers             []VCSServer `json:"servers"`
+}
+
+type staticVCSServerFields struct {
+	Type           string         `json:"type"`
+	BaseURL        string         `json:"baseUrl"`
+	SyncTag        string         `json:"syncTag"`
+	SSHCreds       SSHCredentials `json:"sshCreds"`
+	ProjectsToSync []VCSProject   `json:"projectsToSync"`
 }
 
 type VCSServer struct {
-	Type     string
-	BaseURL  string
-	APIToken string
-	SyncTag  string
-	SSHCreds ParsableCredentials
+	staticVCSServerFields
+	APIToken CredentialSource
 }
 
-type ParsableCredentials struct {
+func (svr *VCSServer) UnmarshalJSON(bytes []byte) error {
+	type IntermediateVCSServer struct {
+		staticVCSServerFields
+		APIToken json.RawMessage `json:"apiToken"`
+	}
+	var intermediateRepresentation IntermediateVCSServer
+	if parseErr := json.Unmarshal(bytes, &intermediateRepresentation); parseErr != nil {
+		return fmt.Errorf("failed to read vcs server: %w", parseErr)
+	}
+
+	svr.staticVCSServerFields = intermediateRepresentation.staticVCSServerFields
+
+	if tokenParseErr := unmarshalCredentialSource(intermediateRepresentation.APIToken, &svr.APIToken); tokenParseErr != nil {
+		return fmt.Errorf("failed to read api token for server %v: %w", intermediateRepresentation.BaseURL, tokenParseErr)
+	}
+	return nil
+}
+
+type SSHCredentials struct {
+	IsPresent  bool
 	PublicKey  CredentialSource
 	PrivateKey CredentialSource
 }
 
-func unmarshalCredentialSource(data []byte, sourceTarget *CredentialSource) error {
-	var credentialType CredentialSourceIdentifier
-	if err := json.Unmarshal(data, &credentialType); err != nil {
-		return err
-	}
-
-	switch credentialType.Type {
-	case "FILE":
-		var credentialSource FileCredentialSource
-		if err := json.Unmarshal(data, &credentialSource); err != nil {
-			return err
-		}
-		*sourceTarget = credentialSource
-		return nil
-	case "ENVIRONMENT":
-		var credentialSource EnvironmentCredentialSource
-		if err := json.Unmarshal(data, &credentialSource); err != nil {
-			return err
-		}
-		*sourceTarget = credentialSource
-		return nil
-	case "INLINE":
-		var credentialSource InlineCredentialSource
-		if err := json.Unmarshal(data, &credentialSource); err != nil {
-			return err
-		}
-		*sourceTarget = credentialSource
-		return nil
-	}
-
-	return fmt.Errorf("%v is not a valid credential source type", credentialType.Type)
-}
-
-func (pc *ParsableCredentials) UnmarshalJSON(bytes []byte) error {
-	type IntermediateParsableCredentials struct {
+func (pc *SSHCredentials) UnmarshalJSON(bytes []byte) error {
+	type IntermediateSSHCredentials struct {
 		PublicKey  json.RawMessage `json:"publicKey"`
 		PrivateKey json.RawMessage `json:"privateKey"`
 	}
-	var intermediateRepresentation IntermediateParsableCredentials
+	var intermediateRepresentation IntermediateSSHCredentials
 	if initialParseErr := json.Unmarshal(bytes, &intermediateRepresentation); initialParseErr != nil {
 		return fmt.Errorf("failed to read ssh credentials: %w", initialParseErr)
 	}
@@ -73,5 +64,14 @@ func (pc *ParsableCredentials) UnmarshalJSON(bytes []byte) error {
 		return fmt.Errorf("failed to read private key information from ssh credentials: %w", privkParseErr)
 	}
 
+	pc.IsPresent = true
+
 	return nil
+}
+
+type VCSProject struct {
+	PathWithNamespace string         `json:"pathWithNamespace"`
+	SSHCloneURL       string         `json:"sshCloneUrl"`
+	SyncTag           string         `json:"syncTag"`
+	SSHCreds          SSHCredentials `json:"sshCreds"`
 }
