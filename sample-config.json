@@ -1,0 +1,52 @@
+{
+  "interactiveProgress": true,
+  "servers": [
+    {
+      "type": "GITLAB",
+      "baseURL": "https://www.gitlab.com",
+      "apiToken": {
+        "type": "INLINE",
+        "value": "api-token-here"
+      },
+      "syncTag": "optional-server-wide-sync-tag",
+
+      "sshCreds": {
+        "publicKey": {
+          "type": "FILE",
+          "location": "/some/directory"
+        },
+        "privateKey": {
+          "type": "ENVIRONMENT",
+          "envVar": "SSH_PRIVKEY"
+        }
+      },
+
+      "projectsToSync": [
+
+        {
+          "pathWithNamespace": "emanguy/project1",
+          "sshCloneURL": "git@gitlab.com:emanguy/project1"
+        },
+
+        {
+          "pathWithNamespace": "emanguy/project2",
+          "sshCloneURL": "git@gitlab.com:emanguy/project2",
+          "syncTag": "sync-tag-specific-to-project",
+          "mainBranchName": "main",
+          "sshCreds": {
+            "publicKey": {
+              "type": "INLINE",
+              "value": "A PUBLIC KEY"
+            },
+            "privateKey": {
+              "type": "INLINE",
+              "value": "A PRIVATE KEY"
+            }
+          }
+        }
+
+      ]
+
+    }
+  ]
+}

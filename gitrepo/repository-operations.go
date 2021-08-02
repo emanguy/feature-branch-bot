@@ -12,7 +12,7 @@ var stdCheckoutOptions = &git.CheckoutOptions{
 
 // CloneRepository clones a git repository from url into destinationDir via the passed SSH credentials. This function will optionally show live
 // progress if interactiveProgress is true.
-func CloneRepository(url, destinationDir string, credentials SSHCredentials, liveProgress bool) (*git.Repository, error) {
+func CloneRepository(url, mainBranchName, destinationDir string, credentials SSHCredentials, liveProgress bool) (*git.Repository, error) {
 	var alreadyNewlined bool
 	cloneOpts := git.CloneOptions{
 		CheckoutOpts: &git.CheckoutOpts{
@@ -45,7 +45,7 @@ func CloneRepository(url, destinationDir string, credentials SSHCredentials, liv
 				},
 			},
 		},
-		CheckoutBranch: "master",
+		CheckoutBranch: mainBranchName,
 	}
 
 	repo, err := git.Clone(url, destinationDir, &cloneOpts)
@@ -108,65 +108,75 @@ func SwitchToBranch(repo *git.Repository, branch string) (*git.Commit, error) {
 	return branchCommit, nil
 }
 
-// MergeBranches merges the specified branch to the current branch
-func MergeBranches(repo *git.Repository, branchToMerge string) error {
+// MergeBranches merges the specified branch to the current branch. Returns true if a merge occurred, false if the
+// branch is up-to-date.
+func MergeBranches(repo *git.Repository, branchToMerge string) (bool, error) {
 	branchResult, branchLookupErr := repo.LookupBranch("origin/"+branchToMerge, git.BranchRemote)
 	if branchLookupErr != nil {
-		return fmt.Errorf("failed to find branch to merge into current: %v: %w", branchToMerge, branchLookupErr)
+		return false, fmt.Errorf("failed to find branch to merge into current: %v: %w", branchToMerge, branchLookupErr)
 	}
 	if branchResult == nil {
-		return fmt.Errorf("branch to merge not found: %v", branchToMerge)
+		return false, fmt.Errorf("branch to merge not found: %v", branchToMerge)
 	}
 	defer branchResult.Free()
 
 	btmMostRecentCommit, commitFetchErr := repo.LookupCommit(branchResult.Target())
 	if commitFetchErr != nil {
-		return fmt.Errorf("failed to get most recent commit from branch %v: %w", branchToMerge, commitFetchErr)
+		return false, fmt.Errorf("failed to get most recent commit from branch %v: %w", branchToMerge, commitFetchErr)
 	}
 	defer btmMostRecentCommit.Free()
 
 	branchToMergeAnnotatedCommit, annotatedCommitFetchErr := repo.LookupAnnotatedCommit(branchResult.Target())
 	if annotatedCommitFetchErr != nil {
-		return fmt.Errorf("could not find commit referenced by branch to merge: %v: %w", branchToMerge, annotatedCommitFetchErr)
+		return false, fmt.Errorf("could not find commit referenced by branch to merge: %v: %w", branchToMerge, annotatedCommitFetchErr)
 	}
 	defer branchToMergeAnnotatedCommit.Free()
 
-	// TODO lookup annotated commit for current branch, then do merge analysis to see if a merge needs to be performed
+	analysisResult, _, mergeAnalysisErr := repo.MergeAnalysis([]*git.AnnotatedCommit{branchToMergeAnnotatedCommit})
+	if mergeAnalysisErr != nil {
+		return false, fmt.Errorf("failed to perform merge analysis against branch %v, could not determine if merge is necessary: %w", branchToMerge, mergeAnalysisErr)
+	}
+
+	// If the branch is already up-to-date, ignore it
+	if analysisResult&git.MergeAnalysisUpToDate != 0 {
+		fmt.Printf("This branch is already up to date with %v.\n", branchToMerge)
+		return false, nil
+	}
 
 	mergeOpts := &git.MergeOptions{
 		TreeFlags: git.MergeTreeFailOnConflict | git.MergeTreeFindRenames,
 	}
 	mergeErr := repo.Merge([]*git.AnnotatedCommit{branchToMergeAnnotatedCommit}, mergeOpts, stdCheckoutOptions)
 	if mergeErr != nil {
-		return fmt.Errorf("merge of branch %v failed: %w", branchToMerge, mergeErr)
+		return false, fmt.Errorf("merge of branch %v failed: %w", branchToMerge, mergeErr)
 	}
 
 	repoHead, headFetchErr := repo.Head()
 	if headFetchErr != nil {
-		return fmt.Errorf("failed to determine head after writing merge to working tree: %w", headFetchErr)
+		return false, fmt.Errorf("failed to determine head after writing merge to working tree: %w", headFetchErr)
 	}
 	defer repoHead.Free()
 
 	repoIndex, indexFetchErr := repo.Index()
 	if indexFetchErr != nil {
-		return fmt.Errorf("failed to determine repo index after merge: %w", indexFetchErr)
+		return false, fmt.Errorf("failed to determine repo index after merge: %w", indexFetchErr)
 	}
 	defer repoIndex.Free()
 
 	currentFileTreeID, fileTreeGenErr := repoIndex.WriteTree()
 	if fileTreeGenErr != nil {
-		return fmt.Errorf("failed to determine the working tree id for merge commit: %w", indexFetchErr)
+		return false, fmt.Errorf("failed to determine the working tree id for merge commit: %w", indexFetchErr)
 	}
 
 	currentFileTree, fileTreeFetchErr := repo.LookupTree(currentFileTreeID)
 	if fileTreeFetchErr != nil {
-		return fmt.Errorf("failed to fetch the working tree for merge commit from %v: %w", branchToMerge, fileTreeFetchErr)
+		return false, fmt.Errorf("failed to fetch the working tree for merge commit from %v: %w", branchToMerge, fileTreeFetchErr)
 	}
 	defer currentFileTree.Free()
 
 	destinationCommit, destCommitFetchErr := repo.LookupCommit(repoHead.Target())
 	if destCommitFetchErr != nil {
-		return fmt.Errorf("failed to determine head commit for merge: %w", destCommitFetchErr)
+		return false, fmt.Errorf("failed to determine head commit for merge: %w", destCommitFetchErr)
 	}
 	defer destinationCommit.Free()
 
@@ -178,15 +188,15 @@ func MergeBranches(repo *git.Repository, branchToMerge string) error {
 
 	_, commitErr := repo.CreateCommit("HEAD", botAuthor, botAuthor, "Automated merge commit from "+branchToMerge, currentFileTree, destinationCommit, btmMostRecentCommit)
 	if commitErr != nil {
-		return fmt.Errorf("failed to create merge commit for merging branch %v: %w", branchToMerge, commitErr)
+		return false, fmt.Errorf("failed to create merge commit for merging branch %v: %w", branchToMerge, commitErr)
 	}
 
 	cleanupErr := repo.StateCleanup()
 	if cleanupErr != nil {
-		return fmt.Errorf("failed to exit merge mode: %w", cleanupErr)
+		return false, fmt.Errorf("failed to exit merge mode: %w", cleanupErr)
 	}
 
-	return nil
+	return true, nil
 }
 
 // ResetRepo does a hard reset to the specified commit
