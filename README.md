@@ -15,3 +15,6 @@ The bot is known to run fine on MacOS, but I plan to automate the building of th
 image so the bot can easily be used in CI or other forms of automation. The strategy for building on Linux (which will
 be the primary target) is still TBD at the moment. I also plan to add local development instructions to this README
 at a future date.
+
+If you want to take a shot at running locally on a Mac, just install `libgit2` and `pkg-config` from homebrew, then set up
+a config file and run `go run .` in the root directory.
