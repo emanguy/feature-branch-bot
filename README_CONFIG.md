@@ -31,9 +31,9 @@ you can provide an alternate path for the configuration as the first argument of
 * `INLINE` Fields:
   * `value` [String] - The literal content of a private or public key. Good for local development, but not recommended for automation.
 * `ENVIRONMENT` Fields:
-  * `envVar` [String] - The environment variable to pull the SSH credential from.
+  * `envVar` [String] - The environment variable to pull the credential from.
 * `FILE` Fields:
-  * `location` - The location of the file where the bot should read the SSH credential. Can be relative to the bot's working directory or an absolute path.
+  * `location` - The location of the file where the bot should read the credential. Can be relative to the bot's working directory or an absolute path.
     Make sure the bot has read permissions on the file in question!
 
 ## VCS Project
