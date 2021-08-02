@@ -41,5 +41,6 @@ you can provide an alternate path for the configuration as the first argument of
 * `sshCloneURL` [String] - The SSH url where the bot can clone the code from for this project.
 * `syncTag` [String, optional] - The tag to look for on merge/pull requests for this project. Other merge/pull requests will be ignored. 
   This value is more specific than the server-level value, and will override it if it is specified here.
+* `mainBranchName` [String, optional] - The name of the primary branch in the repo, used during the initial clone. Defaults to "master" if not specified.
 * `sshCreds` [SSH Credentials, optional] - SSH credentials to use for this specific project during clone/push operations.
   This will override the server-level value if it is provided here.

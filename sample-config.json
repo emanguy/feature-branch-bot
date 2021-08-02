@@ -32,6 +32,7 @@
           "pathWithNamespace": "emanguy/project2",
           "sshCloneURL": "git@gitlab.com:emanguy/project2",
           "syncTag": "sync-tag-specific-to-project",
+          "mainBranchName": "main",
           "sshCreds": {
             "publicKey": {
               "type": "INLINE",

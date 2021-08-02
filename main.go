@@ -65,7 +65,7 @@ func main() {
 				continue
 			}
 
-			repoSyncErr := SyncRepository(glClient, vcsProject.PathWithNamespace, keepUpToDateTag, vcsProject.SSHCloneURL, sshCredentials, botConfiguration.InteractiveProgress)
+			repoSyncErr := SyncRepository(glClient, vcsProject.PathWithNamespace, keepUpToDateTag, vcsProject.SSHCloneURL, vcsProject.MainBranch(), sshCredentials, botConfiguration.InteractiveProgress)
 			if repoSyncErr != nil {
 				fmt.Println("Failed to sync the requested repository: ", repoSyncErr)
 			} else {

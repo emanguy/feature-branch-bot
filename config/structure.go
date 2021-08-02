@@ -73,5 +73,13 @@ type VCSProject struct {
 	PathWithNamespace string         `json:"pathWithNamespace"`
 	SSHCloneURL       string         `json:"sshCloneUrl"`
 	SyncTag           string         `json:"syncTag"`
+	MainBranchName    string         `json:"mainBranchName"`
 	SSHCreds          SSHCredentials `json:"sshCreds"`
+}
+
+func (vcp VCSProject) MainBranch() string {
+	if len(vcp.MainBranchName) == 0 {
+		return "master"
+	}
+	return vcp.MainBranchName
 }

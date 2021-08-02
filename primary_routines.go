@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func SyncRepository(glClient *gitlab.Client, projectPathWithNamespace, triggerTag, cloneURL string, gitCreds gitrepo.SSHCredentials, liveProgress bool) error {
+func SyncRepository(glClient *gitlab.Client, projectPathWithNamespace, triggerTag, cloneURL, mainBranchName string, gitCreds gitrepo.SSHCredentials, liveProgress bool) error {
 	fmt.Printf("Syncing repository %v...\n", projectPathWithNamespace)
 	mrsToSync, mrFetchErr := gitlab_tools.FetchMergeRequestsWithTag(glClient, projectPathWithNamespace, triggerTag)
 	if mrFetchErr != nil {
@@ -25,7 +25,7 @@ func SyncRepository(glClient *gitlab.Client, projectPathWithNamespace, triggerTa
 	fmt.Printf("%v: %v merge requests to sync. Cloning repo.\n", projectPathWithNamespace, len(mrsToSync))
 
 	outputDir := strings.Replace(projectPathWithNamespace, "/", "_", -1)
-	clonedRepo, repoCloneErr := gitrepo.CloneRepository(cloneURL, outputDir, gitCreds, liveProgress)
+	clonedRepo, repoCloneErr := gitrepo.CloneRepository(cloneURL, mainBranchName, outputDir, gitCreds, liveProgress)
 	if repoCloneErr != nil {
 		return repoCloneErr
 	}
@@ -60,7 +60,7 @@ func SyncMR(glClient *gitlab.Client, mergeRequest gitlab.MergeRequest, repo *git
 	defer branchCommit.Free()
 
 	fmt.Printf("Now merging branch %v into %v for MR !%v...\n", targetBranch, currentBranch, mergeRequest.IID)
-	mergeErr := gitrepo.MergeBranches(repo, targetBranch)
+	mergeOccurred, mergeErr := gitrepo.MergeBranches(repo, targetBranch)
 	if mergeErr != nil {
 		fmt.Printf("Merge failed, possible conflict. Notifying authors for MR !%v and hard resetting...\n", mergeRequest.IID)
 		comment := ":warning:  Error: automatic merge failed due to merge conflict. Please merge manually."
@@ -82,10 +82,12 @@ func SyncMR(glClient *gitlab.Client, mergeRequest gitlab.MergeRequest, repo *git
 		return mergeErr
 	}
 
-	fmt.Printf("Pushing updated branch for MR !%v...\n")
-	pushErr := gitrepo.PushChanges(repo, currentBranch, gitCreds, liveProgress)
-	if pushErr != nil {
-		return pushErr
+	if mergeOccurred {
+		fmt.Printf("Pushing updated branch for MR !%v...\n")
+		pushErr := gitrepo.PushChanges(repo, currentBranch, gitCreds, liveProgress)
+		if pushErr != nil {
+			return pushErr
+		}
 	}
 
 	return nil

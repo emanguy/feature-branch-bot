@@ -29,7 +29,7 @@ func (fcs FileCredentialSource) RetrieveCredential() (string, error) {
 }
 
 type EnvironmentCredentialSource struct {
-	VariableName string `json:"variableName"`
+	VariableName string `json:"envVar"`
 }
 
 func (ecs EnvironmentCredentialSource) RetrieveCredential() (string, error) {
