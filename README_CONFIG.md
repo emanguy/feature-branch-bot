@@ -29,7 +29,7 @@ you can provide an alternate path for the configuration as the first argument of
 ## Credential Source
 * `type` [String] - The type of credential source, or how to retrieve the credential. Value should be one of `FILE`, `ENVIRONMENT`, or `INLINE`.
 * `INLINE` Fields:
-  * `value` [String] - The literal content of a private or public key. Good for local development, but not recommended for automation.
+  * `value` [String] - The literal content of a sensitive credential. Good for local development, but not recommended for automation.
 * `ENVIRONMENT` Fields:
   * `envVar` [String] - The environment variable to pull the credential from.
 * `FILE` Fields:
