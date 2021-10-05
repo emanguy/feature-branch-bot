@@ -1,0 +1,4 @@
+.gradle/
+.idea/
+bot-config.json
+build/
