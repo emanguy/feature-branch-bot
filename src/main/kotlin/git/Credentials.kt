@@ -1,20 +1,16 @@
 package me.erittenhouse.featurebranchbot.git
 
-import org.eclipse.jgit.transport.CredentialsProvider
-import org.eclipse.jgit.transport.RemoteSession
-import org.eclipse.jgit.transport.SshSessionFactory
-import org.eclipse.jgit.transport.URIish
+import com.jcraft.jsch.JSch
+import org.eclipse.jgit.transport.*
 import org.eclipse.jgit.util.FS
 
 data class Credentials(val sshPublicKey: String, val sshPrivateKey: String)
 
-class SSHSessionFactory(private val credentials: Credentials) : SshSessionFactory() {
-    override fun getSession(uri: URIish?, credentialsProvider: CredentialsProvider?, fs: FS?, tms: Int): RemoteSession {
-        TODO("Not yet implemented")
+class SSHSessionFactory(private val credentials: Credentials) : JschConfigSessionFactory() {
+    override fun createDefaultJSch(fs: FS?): JSch {
+        val defaultJsch = super.createDefaultJSch(fs)
+        defaultJsch.addIdentity("userProvidedKey", credentials.sshPrivateKey.toByteArray(), credentials.sshPublicKey.toByteArray(), ByteArray(0))
+        defaultJsch.addIdentity(credentials.sshPrivateKey)
+        return defaultJsch
     }
-
-    override fun getType(): String {
-        TODO("Not yet implemented")
-    }
-
 }

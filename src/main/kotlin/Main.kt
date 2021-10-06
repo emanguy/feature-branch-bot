@@ -3,7 +3,7 @@ package me.erittenhouse.featurebranchbot
 import kotlinx.serialization.decodeFromString
 import me.erittenhouse.featurebranchbot.config.Configuration
 import me.erittenhouse.featurebranchbot.config.determineProjectValue
-import me.erittenhouse.featurebranchbot.gitlab.fetchOpenMergeRequestsWithTag
+import me.erittenhouse.featurebranchbot.git.Credentials
 import me.erittenhouse.featurebranchbot.util.printStackTraceIfEnabled
 import me.erittenhouse.featurebranchbot.util.serializer
 import org.gitlab4j.api.GitLabApi
@@ -31,23 +31,37 @@ fun main(args: Array<String>) {
 
         for (project in server.projectsToSync) {
             println("Syncing merge requests for project ${project.pathWithNamespace}...")
-            val syncTag = determineProjectValue(server.syncTag, project.syncTag)
-            if (syncTag == null) {
+            val syncLabel = determineProjectValue(server.syncTag, project.syncTag)
+            if (syncLabel == null) {
                 println("Error: failed to determine sync tag for project ${project.pathWithNamespace}. " +
                         "It must be provided for either the server or project or both.")
                 continue
             }
 
-            val mergeRequestsToSync = try {
-                gitLabApi.fetchOpenMergeRequestsWithTag(project.pathWithNamespace, syncTag)
+            val credentials = try {
+                val privateKey = determineProjectValue(server.sshCreds?.privateKey, project.sshCredentials?.privateKey)
+                val publicKey = determineProjectValue(server.sshCreds?.publicKey, project.sshCredentials?.publicKey)
+
+                if (privateKey == null || publicKey == null) {
+                    println("Error: public or private key not provided for project ${project.pathWithNamespace}." +
+                            "It must be provided for either the server or project or both.")
+                    continue
+                }
+
+                Credentials(publicKey.retrieveCredential(), privateKey.retrieveCredential())
             } catch (e: Exception) {
-                println("Error: failed to list merge requests in ${project.pathWithNamespace} with the label $syncTag." +
-                        "Please check the provided credentials.")
+                println("Error: failed to read the public or private key for project ${project.pathWithNamespace}.")
                 e.printStackTraceIfEnabled(programConfig)
                 continue
             }
 
-            mergeRequestsToSync.forEach(::println)
+            try {
+                syncRepository(gitLabApi, project, syncLabel, credentials, programConfig.interactiveProgress)
+            } catch(e: Exception) {
+                println("Error: failed to sync project: ${e.message}")
+                e.printStackTraceIfEnabled(programConfig)
+                continue
+            }
         }
     }
 }
