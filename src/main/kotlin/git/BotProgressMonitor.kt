@@ -13,7 +13,22 @@ class NoOpMonitor : ProgressMonitor {
 
 class BotProgressMonitor : ProgressMonitor {
     var currentTaskTitle: String = ""
+    var workDone: Int = 0
     var totalProgress: Int = 0
+
+    private fun printProgress(currentProgress: Int, isUpdate: Boolean = true) {
+        if (currentTaskTitle.isEmpty()) return
+        if (isUpdate) {
+            print("\r")
+        } else {
+            println()
+        }
+
+        print("$currentTaskTitle: $currentProgress")
+        if (totalProgress > 0) {
+            print("/$totalProgress")
+        }
+    }
 
     override fun start(totalTasks: Int) {
         // Do nothing
@@ -21,18 +36,17 @@ class BotProgressMonitor : ProgressMonitor {
 
     override fun beginTask(title: String?, totalWork: Int) {
         currentTaskTitle = title ?: "Unnamed Task"
+        workDone = 0
         totalProgress = totalWork
-        println("$currentTaskTitle: 0/$totalWork")
+        printProgress(0, isUpdate = false)
     }
 
     override fun update(completed: Int) {
-        println("\r$currentTaskTitle: $completed/$totalProgress")
+        workDone += completed
+        printProgress(workDone)
     }
 
-    override fun endTask() {
-        // Move to a new line
-        println()
-    }
+    override fun endTask() {}
 
     override fun isCancelled(): Boolean = false
 }

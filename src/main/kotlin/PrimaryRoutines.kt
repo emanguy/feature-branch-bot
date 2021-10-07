@@ -19,6 +19,7 @@ fun syncRepository(gitlabApi: GitLabApi, project: VCSProject, triggerLabel: Stri
     }
 
     // Clone, replacing slashes in name with underscores
+    println("Cloning repository from project ${project.pathWithNamespace}.")
     val outputDir = project.pathWithNamespace.replace("/", "_")
     val clonedRepo = try {
         cloneRepository(project.sshCloneURL, outputDir, credentials, liveProgress)
