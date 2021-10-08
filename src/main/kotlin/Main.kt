@@ -31,7 +31,7 @@ fun main(args: Array<String>) {
 
         for (project in server.projectsToSync) {
             println("Syncing merge requests for project ${project.pathWithNamespace}...")
-            val syncLabel = determineProjectValue(server.syncTag, project.syncTag)
+            val syncLabel = determineProjectValue(server.syncLabel, project.syncLabel)
             if (syncLabel == null) {
                 println("Error: failed to determine sync tag for project ${project.pathWithNamespace}. " +
                         "It must be provided for either the server or project or both.")
@@ -55,13 +55,21 @@ fun main(args: Array<String>) {
                 continue
             }
 
-            try {
-                syncRepository(gitLabApi, project, syncLabel, credentials, programConfig.interactiveProgress)
+            val anyMergeSucceeded = try {
+                syncRepository(gitLabApi, project, syncLabel, credentials, programConfig.interactiveProgress, programConfig.showErrorStacktraces)
             } catch(e: Exception) {
                 println("Error: failed to sync project: ${e.message}")
                 e.printStackTraceIfEnabled(programConfig)
                 continue
             }
+
+            if (anyMergeSucceeded) {
+                println("Success: Sync of project ${project.pathWithNamespace} complete.")
+            } else {
+                println("Error: Sync failure for project ${project.pathWithNamespace}.")
+            }
         }
     }
+
+    println("\nBot finished.")
 }

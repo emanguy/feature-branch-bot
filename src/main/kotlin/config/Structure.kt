@@ -14,7 +14,7 @@ data class VCSServer(
     val type: String,
     val baseURL: String,
     val apiToken: CredentialSource,
-    val syncTag: String? = null,
+    val syncLabel: String? = null,
     val sshCreds: SSHCredentials? = null,
     val projectsToSync: List<VCSProject>,
 )
@@ -23,7 +23,7 @@ data class VCSServer(
 data class VCSProject(
     val pathWithNamespace: String,
     val sshCloneURL: String,
-    val syncTag: String? = null,
+    val syncLabel: String? = null,
     val mainBranchName: String = "master",
     val sshCredentials: SSHCredentials? = null,
 )

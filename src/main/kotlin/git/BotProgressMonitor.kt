@@ -15,6 +15,8 @@ class BotProgressMonitor : ProgressMonitor {
     var currentTaskTitle: String = ""
     var workDone: Int = 0
     var totalProgress: Int = 0
+    var totalTasksComplete: Int = 0
+    var totalTasks: Int = 0
 
     private fun printProgress(currentProgress: Int, isUpdate: Boolean = true) {
         if (currentTaskTitle.isEmpty()) return
@@ -31,7 +33,7 @@ class BotProgressMonitor : ProgressMonitor {
     }
 
     override fun start(totalTasks: Int) {
-        // Do nothing
+        this.totalTasks = totalTasks
     }
 
     override fun beginTask(title: String?, totalWork: Int) {
@@ -46,7 +48,12 @@ class BotProgressMonitor : ProgressMonitor {
         printProgress(workDone)
     }
 
-    override fun endTask() {}
+    override fun endTask() {
+        totalTasksComplete++
+        if (totalTasksComplete == totalTasks) {
+            println()
+        }
+    }
 
     override fun isCancelled(): Boolean = false
 }
