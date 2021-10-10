@@ -11,10 +11,17 @@ The configuration file is very flexible, and you can read about its format [here
 
 ## State of the bot
 
-The bot is known to run fine on MacOS, but I plan to automate the building of the software and release a docker
-image so the bot can easily be used in CI or other forms of automation. The strategy for building on Linux (which will
-be the primary target) is still TBD at the moment. I also plan to add local development instructions to this README
-at a future date.
+The bot has been fully re-written from the ground up in Kotlin, as the Go libraries for Git have been found to be
+relatively immature in comparison. The old Go implementation can be found on the `old-go-implementation` branch for
+anyone interested.
 
-If you want to take a shot at running locally on a Mac, just install `libgit2` and `pkg-config` from homebrew, then set up
-a config file and run `go run .` in the root directory.
+The bot can be run from source using the included `gradlew` and `gradlew.bat` files with the gradle command
+`./gradlew run`. Note that Java 11 is required to run the feature branch bot.
+
+The following tasks still need to get done before this project is fully released:
+ - [ ] Update the Gradle file to build a JAR file so the code can be run without the source code or build chain
+ - [ ] Add a Dockerfile so the bot can be run as part of CI or automation without any dependency requirements
+ - [ ] Implement a CI pipeline to build the Dockerfile and JAR file automatically for future releases
+
+In the future, I plan to add GitHub support but that will have to happen after the other "initial release" tasks
+are completed. Pull requests and contributions are welcome!
