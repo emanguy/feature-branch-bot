@@ -89,7 +89,8 @@ fun syncMR(
         throw Exception("Merge could not be completed due to conflict.")
     }
 
-    println("Success: merge for MR !${mergeRequest.iid} completed with status $mergeStatus. Pushing result.")
+    val pushMsg = if (mergeStatus == MergeResult.MergeStatus.MERGED) " Pushing result." else ""
+    println("Success: merge for MR !${mergeRequest.iid} completed with status $mergeStatus.$pushMsg")
 
     // Only push if there was actually anything new to merge
     if (mergeStatus != MergeResult.MergeStatus.ALREADY_UP_TO_DATE) {
