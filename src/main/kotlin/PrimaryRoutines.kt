@@ -19,7 +19,7 @@ fun syncRepository(gitlabApi: GitLabApi, project: VCSProject, triggerLabel: Stri
     val mergeRequestsToSync = try {
         gitlabApi.fetchOpenMergeRequestsWithLabel(project.pathWithNamespace, triggerLabel)
     } catch (e: Exception) {
-        throw Error("Failed to list merge requests in ${project.pathWithNamespace} with the label $triggerLabel." +
+        throw Exception("Failed to list merge requests in ${project.pathWithNamespace} with the label $triggerLabel." +
                 "Please check the provided credentials.", e)
     }
 
@@ -29,7 +29,7 @@ fun syncRepository(gitlabApi: GitLabApi, project: VCSProject, triggerLabel: Stri
     val clonedRepo = try {
         cloneRepository(project.sshCloneURL, outputDir, credentials, liveProgress)
     } catch (e: Exception) {
-        throw Error("Failed to clone repository for project: ${project.pathWithNamespace}.", e)
+        throw Exception("Failed to clone repository for project: ${project.pathWithNamespace}.", e)
     }
 
     // Sync each detected merge request
@@ -49,7 +49,7 @@ fun syncRepository(gitlabApi: GitLabApi, project: VCSProject, triggerLabel: Stri
     try {
         File(outputDir).deleteRecursively()
     } catch (e: Exception) {
-        throw Error("Failed to remove cloned project ${project.pathWithNamespace} at $outputDir.", e)
+        throw Exception("Failed to remove cloned project ${project.pathWithNamespace} at $outputDir.", e)
     }
 
     return anyMergeSucceeded
@@ -71,7 +71,7 @@ fun syncMR(
 
     // If merge fails, make comment on MR and hard reset
     if (!mergeStatus.isSuccessful) {
-        println("Error: merge of MR !${mergeRequest.iid} failed with status $mergeStatus.")
+        println("Error: merge of MR !${mergeRequest.iid} failed with status $mergeStatus. Hard resetting.")
         if (mergeStatus == MergeResult.MergeStatus.CONFLICTING) {
             try {
                 gitlabApi.notesApi.createMergeRequestNote(
@@ -86,8 +86,10 @@ fun syncMR(
         }
 
         hardReset(repo)
-        throw Error("Merge could not be completed due to conflict.")
+        throw Exception("Merge could not be completed due to conflict.")
     }
+
+    println("Success: merge for MR !${mergeRequest.iid} completed with status $mergeStatus. Pushing result.")
 
     // Only push if there was actually anything new to merge
     if (mergeStatus != MergeResult.MergeStatus.ALREADY_UP_TO_DATE) {

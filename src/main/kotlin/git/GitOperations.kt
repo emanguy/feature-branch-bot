@@ -17,7 +17,7 @@ fun cloneRepository(cloneURL: String, cloneDir: String, credentials: Credentials
         .setDirectory(File(cloneDir))
         .setTransportConfigCallback { transport ->
             val convertedTransport = transport as? SshTransport ?:
-                throw Error("Did not receive SSH transport. Did you provide an SSH URL?")
+                throw Exception("Did not receive SSH transport. Did you provide an SSH URL?")
             convertedTransport.sshSessionFactory = SSHSessionFactory(credentials)
         }.let { cloneCommand ->
             if (liveProgress) {
@@ -26,6 +26,9 @@ fun cloneRepository(cloneURL: String, cloneDir: String, credentials: Credentials
                 cloneCommand.setProgressMonitor(NoOpMonitor())
             }
         }.call()
+    // Go to a new line because the progress monitor stays on the last line
+    println()
+
     repo.repository.config.setString("user", null, "name", "Feature-Branch Bot")
     repo.repository.config.setString("user", null, "email", "noreply@featurebranchbot.net")
 
@@ -62,7 +65,7 @@ fun pushChanges(repo: Git, credentials: Credentials, liveProgress: Boolean) {
     repo.push()
         .setTransportConfigCallback { transport ->
             val convertedTransport = transport as? SshTransport ?:
-                throw Error("Did not receive SSH transport. Did you provide an SSH URL?")
+                throw Exception("Did not receive SSH transport. Did you provide an SSH URL?")
             convertedTransport.sshSessionFactory = SSHSessionFactory(credentials)
         }.let { pushCommand ->
             if (liveProgress) {
@@ -71,4 +74,7 @@ fun pushChanges(repo: Git, credentials: Credentials, liveProgress: Boolean) {
                 pushCommand.setProgressMonitor(NoOpMonitor())
             }
         }.call()
+
+    // Go to a new line because the progress monitor stays on the last line
+    println()
 }
