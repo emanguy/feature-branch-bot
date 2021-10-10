@@ -25,6 +25,8 @@ you can provide an alternate path for the configuration as the first argument of
 * `projectsToSync` [List of VCS Project] - The projects on this server whose feature branches should be synced with the target branch.
 
 ## SSH Credentials
+*Note that SSH keys must be in PEM format, i.e. generated via `ssh-keygen -m pem` or the bot will fail to authenticate when cloning/pushing.
+This is a limitation of the pure-Java SSH library used on this project, however that makes it platform-agnostic.*
 * `publicKey` [Credential Source] - Information on where to find the public key for SSH cloning.
 * `privateKey` [Credential Source] - Information on where to find the private key for SSH cloning.
 
