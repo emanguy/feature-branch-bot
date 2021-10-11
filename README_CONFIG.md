@@ -5,6 +5,9 @@ See the [sample configuration](./sample-config.json) for a starting point.
 The bot looks for `bot-config.json` as the default configuration file name, though
 you can provide an alternate path for the configuration as the first argument of the executable.
 
+If you're using the feature branch bot with docker, you can also provide the bot config inline via the environment
+variable `BOT_CONFIG_JSON`.
+
 ## Top Level
 * `interactiveProgress` [Boolean, optional] - True if live progress should be rendered while cloning a repo. Good for local runs, bad for automation. Defaults to false.
 * `showErrorStacktraces` [Boolean, optional] - True if stacktraces should be shown when errors occur during bot operations. 
