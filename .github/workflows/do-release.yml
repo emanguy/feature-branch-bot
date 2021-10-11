@@ -30,8 +30,7 @@ jobs:
       - uses: Roang-zero1/github-upload-release-artifacts-action@2.1.0
         name: Upload JAR file to release
         with:
-          args:
-            - build/libs/
+          args: "build/libs/"
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
