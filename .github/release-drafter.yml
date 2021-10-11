@@ -17,6 +17,7 @@ version-resolver:
   patch:
     labels:
       - "impact-level/patch"
+  default: patch
 
 template: |-
   A new version of the Feature Branch Bot has been released!
