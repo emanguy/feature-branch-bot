@@ -1,9 +1,9 @@
 name: Publish artifacts on release
 
 on:
-  push:
-    tags:
-      - v*
+  release:
+    types:
+      - released
 
 jobs:
   release-executable-jar:
