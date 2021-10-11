@@ -1,0 +1,32 @@
+name-template: Feature Branch Bot v$RESOLVED_VERSION
+tag-template: v$RESOLVED_VERSION
+categories:
+  - title: "New features & enhancements"
+    label: enhancement
+
+  - title: Bug Fixes
+    label: bug
+
+version-resolver:
+  major:
+    labels:
+      - "impact-level/major"
+  minor:
+    labels:
+      - "impact-level/minor"
+  patch:
+    labels:
+      - "impact-level/patch"
+
+template: |-
+  A new version of the Feature Branch Bot has been releassed.
+
+  Thank you to the following people for contributing to this release: $CONTRIBUTORS
+
+  The standalone executable JAR for this bot can be downloaded below. For the docker
+  image for this version, check the repository's packages. Be sure to check
+  the `README_CONFIG.md` file to see how to configure the bot.
+
+  Here's what changed:
+
+  $CHANGES
