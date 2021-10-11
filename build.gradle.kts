@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     kotlin("jvm") version "1.5.31"
     kotlin("plugin.serialization") version "1.5.31"
+    id("com.github.johnrengelman.shadow") version "7.1.0"
     application
 }
 
@@ -26,6 +27,11 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.shadowJar {
+    archiveBaseName.set("FeatureBranchBot")
+    archiveClassifier.set("")
 }
 
 kotlin {
