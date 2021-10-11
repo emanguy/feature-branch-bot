@@ -1,0 +1,53 @@
+name: Publish artifacts on release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  release-executable-jar:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        name: Check out code
+
+      - uses: davidd6/action-get-tag@v1
+        name: Determine tag
+        id: get-tag
+
+      - uses: actions/setup-java@v1
+        name: Install Java 11
+        with:
+          java-version: 11
+
+      - uses: gradle/gradle-build-action@v2
+        name: Build JAR file
+        with:
+          gradle-version: 7.2
+          arguments: -PreleaseVersion=${{ steps.get-tag.outputs.tag }} shadowJar
+
+      - uses: Roang-zero1/github-upload-release-artifacts-action@2.1.0
+        name: Upload JAR file to release
+        with:
+          args:
+            - build/libs/
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  release-docker-image:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        name: Check out code
+
+      - uses: davidd6/action-get-tag@v1
+        name: Determine tag
+        id: get-tag
+
+      - uses: matootie/github-docker@3.1.0
+        name: "Build docker image & push to repository package registry"
+        with:
+          accessToken: ${{ github.token }}
+          imageName: feature-branch-bot
+          tag: ${{ steps.get-tag.outputs.tag }}
