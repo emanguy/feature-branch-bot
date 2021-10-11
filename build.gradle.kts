@@ -7,8 +7,10 @@ plugins {
     application
 }
 
+val releaseVersion: String? by project
+
 group = "me.erittenhouse"
-version = "0.0.1"
+version = releaseVersion ?: "SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -32,13 +34,8 @@ tasks.test {
 tasks.shadowJar {
     archiveBaseName.set("FeatureBranchBot")
     archiveClassifier.set("")
-}
-
-kotlin {
-    sourceSets.all {
-        languageSettings.apply {
-            languageVersion = "1.6"
-        }
+    if (releaseVersion == null) {
+        archiveVersion.set("")
     }
 }
 

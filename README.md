@@ -20,7 +20,7 @@ The bot can be run from source using the included `gradlew` and `gradlew.bat` fi
 
 The following tasks still need to get done before this project is fully released:
  - [x] Update the Gradle file to build a JAR file so the code can be run without the source code or build chain
- - [ ] Add a Dockerfile so the bot can be run as part of CI or automation without any dependency requirements
+ - [x] Add a Dockerfile so the bot can be run as part of CI or automation without any dependency requirements
  - [ ] Implement a CI pipeline to build the Dockerfile and JAR file automatically for future releases
 
 In the future, I plan to add GitHub support but that will have to happen after the other "initial release" tasks
