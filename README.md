@@ -19,7 +19,7 @@ The bot can be run from source using the included `gradlew` and `gradlew.bat` fi
 `./gradlew run`. Note that Java 11 is required to run the feature branch bot.
 
 The following tasks still need to get done before this project is fully released:
- - [ ] Update the Gradle file to build a JAR file so the code can be run without the source code or build chain
+ - [x] Update the Gradle file to build a JAR file so the code can be run without the source code or build chain
  - [ ] Add a Dockerfile so the bot can be run as part of CI or automation without any dependency requirements
  - [ ] Implement a CI pipeline to build the Dockerfile and JAR file automatically for future releases
 
