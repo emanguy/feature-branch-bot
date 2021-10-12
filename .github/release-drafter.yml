@@ -24,8 +24,8 @@ template: |-
 
   Thank you to the following people for contributing to this release: $CONTRIBUTORS
 
-  The standalone executable JAR for this bot can be downloaded below. For the docker
-  image for this version, check the repository's packages. Be sure to check
+  The standalone executable JAR for this bot can be downloaded below. You can find the
+  docker image for this release on [Github Container Registry](https://github.com/users/emanguy/packages/container/package/feature-branch-bot). Be sure to check
   the `README_CONFIG.md` file to see how to configure the bot.
 
   Here's what changed:
