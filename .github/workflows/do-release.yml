@@ -47,7 +47,7 @@ jobs:
       - uses: matootie/github-docker@v3.1.0
         name: "Build docker image & push to repository package registry"
         with:
-          accessToken: ${{ secrets.CONTAINER_PUSH_TOKEN }}
+          accessToken: ${{ github.token }}
           imageName: feature-branch-bot
           tag: ${{ steps.get-tag.outputs.tag }}
           containerRegistry: true
